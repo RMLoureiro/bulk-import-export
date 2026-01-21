@@ -39,6 +39,9 @@ func main() {
 	r := gin.Default()
 	r.RedirectTrailingSlash = false
 
+	// Add metrics middleware
+	r.Use(common.MetricsMiddleware())
+
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})

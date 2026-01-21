@@ -201,6 +201,9 @@ func GetImport(c *gin.Context) {
 		return
 	}
 	
+	// Set rows processed for metrics
+	c.Set("rows_processed", job.ProcessedCount)
+	
 	response := GetImportResponse{
 		JobID:          job.ID,
 		ResourceType:   job.ResourceType,

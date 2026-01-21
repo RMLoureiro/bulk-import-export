@@ -371,6 +371,9 @@ func GetExport(c *gin.Context) {
 		return
 	}
 
+	// Set rows processed for metrics
+	c.Set("rows_processed", job.TotalRecords)
+
 	response := gin.H{
 		"job_id":        job.ID,
 		"resource_type": job.ResourceType,
