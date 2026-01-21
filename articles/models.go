@@ -19,7 +19,7 @@ type ArticleModel struct {
 	CreatedAt   time.Time  `gorm:"not null" json:"created_at"`
 	
 	// Relations
-	Tags []TagModel `gorm:"many2many:article_tags;" json:"tags,omitempty"`
+	Tags []TagModel `gorm:"many2many:article_tags;joinForeignKey:article_id;joinReferences:tag_id" json:"tags,omitempty"`
 }
 
 // TagModel for separate tag storage (enables filtering)

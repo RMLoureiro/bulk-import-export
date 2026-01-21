@@ -209,9 +209,14 @@ func (v *CommentValidator) ValidateCommentRecord(record map[string]interface{}, 
 	}
 	
 	// Validate ID (optional - will be generated if empty)
+	// Allow cm_ prefix for comment IDs
 	id = strings.TrimSpace(id)
 	if id != "" {
-		if _, err := uuid.Parse(id); err != nil {
+		idToValidate := id
+		if strings.HasPrefix(id, "cm_") {
+			idToValidate = strings.TrimPrefix(id, "cm_")
+		}
+		if _, err := uuid.Parse(idToValidate); err != nil {
 			result.AddError("id", "Invalid UUID format")
 		}
 	}

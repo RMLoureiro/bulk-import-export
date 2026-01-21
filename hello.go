@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"bulk-import-export/articles"
 	"bulk-import-export/common"
+	"bulk-import-export/exports"
+	"bulk-import-export/imports"
 	"bulk-import-export/users"
 	"gorm.io/gorm"
 )
@@ -42,10 +44,19 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// TODO: Will add import/export routes in next steps
-	// v1 := r.Group("/api/v1")
-	// imports.RegisterRoutes(v1.Group("/imports"))
-	// exports.RegisterRoutes(v1.Group("/exports"))
+	// API v1 routes
+	v1 := r.Group("/v1")
+	{
+		v1.POST("/imports", imports.CreateImport)
+		v1.GET("/imports/:job_id", imports.GetImport)
+		
+		v1.GET("/exports", exports.StreamExport)
+		v1.POST("/exports", exports.CreateExport)
+		v1.GET("/exports/:job_id", exports.GetExport)
+	}
+
+	// Serve static export files
+	r.Static("/exports", "./data/exports")
 
 	// Start server
 	port := os.Getenv("PORT")

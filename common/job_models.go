@@ -9,7 +9,7 @@ import (
 // ImportJob tracks the status of import operations
 type ImportJob struct {
 	ID             string     `gorm:"primaryKey;type:text" json:"id"`
-	IdempotencyKey string     `gorm:"uniqueIndex" json:"idempotency_key,omitempty"`
+	IdempotencyKey string     `gorm:"uniqueIndex;not null" json:"idempotency_key"`
 	ResourceType   string     `gorm:"not null" json:"resource_type"` // users, articles, comments
 	Status         string     `gorm:"not null" json:"status"`        // pending, processing, completed, failed
 	FilePath       string     `json:"file_path,omitempty"`
@@ -25,16 +25,17 @@ type ImportJob struct {
 
 // ExportJob tracks the status of export operations
 type ExportJob struct {
-	ID           string     `gorm:"primaryKey;type:text" json:"id"`
-	ResourceType string     `gorm:"not null" json:"resource_type"`
-	Format       string     `gorm:"not null" json:"format"` // csv, ndjson
-	Filters      string     `gorm:"type:text" json:"filters,omitempty"` // JSON filters
-	Status       string     `gorm:"not null" json:"status"`
-	FilePath     string     `json:"file_path,omitempty"`
-	DownloadURL  string     `json:"download_url,omitempty"`
-	TotalRecords int        `gorm:"default:0" json:"total_records"`
-	CreatedAt    time.Time  `gorm:"not null" json:"created_at"`
-	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+	ID             string     `gorm:"primaryKey;type:text" json:"id"`
+	IdempotencyKey string     `gorm:"uniqueIndex;not null" json:"idempotency_key"`
+	ResourceType   string     `gorm:"not null" json:"resource_type"`
+	Format         string     `gorm:"not null" json:"format"` // csv, ndjson
+	Filters        string     `gorm:"type:text" json:"filters,omitempty"` // JSON filters
+	Status         string     `gorm:"not null" json:"status"`
+	FilePath       string     `json:"file_path,omitempty"`
+	DownloadURL    string     `json:"download_url,omitempty"`
+	TotalRecords   int        `gorm:"default:0" json:"total_records"`
+	CreatedAt      time.Time  `gorm:"not null" json:"created_at"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 }
 
 // ApiMetric tracks API performance metrics

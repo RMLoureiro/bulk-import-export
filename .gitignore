@@ -39,6 +39,7 @@ results.sarif
 
 bak.*
 tmp/
+data/
 
 # Binary
 bulk-import-export
