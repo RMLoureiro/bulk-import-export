@@ -39,3 +39,7 @@ results.sarif
 
 bak.*
 tmp/
+
+# Binary
+bulk-import-export
+bulk-import-export.exe

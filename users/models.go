@@ -3,7 +3,7 @@ package users
 import (
 	"time"
 
-	"github.com/gothinkster/golang-gin-realworld-example-app/common"
+	"bulk-import-export/common"
 )
 
 // UserModel represents the spec-compliant user structure

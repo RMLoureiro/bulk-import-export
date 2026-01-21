@@ -1,4 +1,4 @@
-module github.com/gothinkster/golang-gin-realworld-example-app
+module bulk-import-export
 
 go 1.21
 

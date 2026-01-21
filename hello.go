@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gothinkster/golang-gin-realworld-example-app/articles"
-	"github.com/gothinkster/golang-gin-realworld-example-app/common"
-	"github.com/gothinkster/golang-gin-realworld-example-app/users"
+	"bulk-import-export/articles"
+	"bulk-import-export/common"
+	"bulk-import-export/users"
 	"gorm.io/gorm"
 )
 

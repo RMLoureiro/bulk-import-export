@@ -3,7 +3,7 @@ package articles
 import (
 	"time"
 
-	"github.com/gothinkster/golang-gin-realworld-example-app/common"
+	"bulk-import-export/common"
 )
 
 // ArticleModel represents the spec-compliant article structure
