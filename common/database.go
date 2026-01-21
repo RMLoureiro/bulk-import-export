@@ -58,6 +58,10 @@ func Init() *gorm.DB {
 	if err != nil {
 		fmt.Println("db err: (Init) ", err)
 	}
+	
+	// Enable foreign key constraints for SQLite
+	db.Exec("PRAGMA foreign_keys = ON")
+	
 	sqlDB, err := db.DB()
 	if err != nil {
 		fmt.Println("db err: (Init - get sql.DB) ", err)
