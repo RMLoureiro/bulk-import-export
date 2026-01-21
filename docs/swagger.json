@@ -1,0 +1,431 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "RealWorld Conduit API with bulk import/export capabilities",
+        "title": "Bulk Import/Export API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/v1",
+    "paths": {
+        "/exports": {
+            "get": {
+                "description": "Streams users, articles, or comments directly in CSV or NDJSON format",
+                "produces": [
+                    "text/csv",
+                    "application/x-ndjson"
+                ],
+                "tags": [
+                    "exports"
+                ],
+                "summary": "Stream export data (synchronous)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource type (users, articles, or comments)",
+                        "name": "resource",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Export format (csv or ndjson)",
+                        "name": "format",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Streaming export data",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates an export job to export filtered data asynchronously with download URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "exports"
+                ],
+                "summary": "Create async export job",
+                "parameters": [
+                    {
+                        "description": "Export configuration",
+                        "name": "export",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/exports.CreateExportRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Existing job returned (idempotency)",
+                        "schema": {
+                            "$ref": "#/definitions/exports.CreateExportResponse"
+                        }
+                    },
+                    "202": {
+                        "description": "Export job created",
+                        "schema": {
+                            "$ref": "#/definitions/exports.CreateExportResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/exports/{job_id}": {
+            "get": {
+                "description": "Retrieves the status and download URL of an export job",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "exports"
+                ],
+                "summary": "Get export job status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Export Job ID",
+                        "name": "job_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Export job details with download URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/imports": {
+            "post": {
+                "description": "Creates an import job to bulk import users, articles, or comments from CSV or NDJSON files",
+                "consumes": [
+                    "multipart/form-data",
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "Create a new import job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Unique key to prevent duplicate imports",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File to import (CSV or NDJSON)",
+                        "name": "file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type of resource (users, articles, or comments)",
+                        "name": "resource_type",
+                        "in": "formData"
+                    },
+                    {
+                        "description": "URL of file to import (alternative to file upload)",
+                        "name": "file_url",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Existing job returned (idempotency)",
+                        "schema": {
+                            "$ref": "#/definitions/imports.CreateImportResponse"
+                        }
+                    },
+                    "202": {
+                        "description": "Import job created",
+                        "schema": {
+                            "$ref": "#/definitions/imports.CreateImportResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/imports/{job_id}": {
+            "get": {
+                "description": "Retrieves the status and progress of an import job",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "imports"
+                ],
+                "summary": "Get import job status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Import Job ID",
+                        "name": "job_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Import job details",
+                        "schema": {
+                            "$ref": "#/definitions/imports.GetImportResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "common.RecordValidationResult": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/common.ValidationError"
+                    }
+                },
+                "record_id": {
+                    "type": "string"
+                },
+                "row_number": {
+                    "type": "integer"
+                },
+                "valid": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "common.ValidationError": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "exports.CreateExportRequest": {
+            "type": "object",
+            "required": [
+                "format",
+                "idempotency_key",
+                "resource_type"
+            ],
+            "properties": {
+                "fields": {
+                    "description": "Optional field selection",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "filters": {
+                    "description": "Optional filters",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "format": {
+                    "type": "string",
+                    "enum": [
+                        "csv",
+                        "ndjson"
+                    ]
+                },
+                "idempotency_key": {
+                    "type": "string"
+                },
+                "resource_type": {
+                    "type": "string",
+                    "enum": [
+                        "users",
+                        "articles",
+                        "comments"
+                    ]
+                }
+            }
+        },
+        "exports.CreateExportResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "job_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "imports.CreateImportResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "job_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "imports.GetImportResponse": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/common.RecordValidationResult"
+                    }
+                },
+                "fail_count": {
+                    "type": "integer"
+                },
+                "job_id": {
+                    "type": "string"
+                },
+                "processed_count": {
+                    "type": "integer"
+                },
+                "resource_type": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "success_count": {
+                    "type": "integer"
+                },
+                "total_records": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

@@ -19,8 +19,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// StreamExport handles GET /v1/exports for streaming exports
-// Query params: resource (users|articles|comments), format (csv|ndjson), filters
+// StreamExport godoc
+// @Summary Stream export data (synchronous)
+// @Description Streams users, articles, or comments directly in CSV or NDJSON format
+// @Tags exports
+// @Produce text/csv
+// @Produce application/x-ndjson
+// @Param resource query string true "Resource type (users, articles, or comments)"
+// @Param format query string true "Export format (csv or ndjson)"
+// @Success 200 {file} file "Streaming export data"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Router /exports [get]
 func StreamExport(c *gin.Context) {
 	resource := c.Query("resource")
 	format := c.Query("format")
@@ -312,7 +321,18 @@ type CreateExportResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// CreateExport handles POST /v1/exports for async exports
+// CreateExport godoc
+// @Summary Create async export job
+// @Description Creates an export job to export filtered data asynchronously with download URL
+// @Tags exports
+// @Accept json
+// @Produce json
+// @Param export body CreateExportRequest true "Export configuration"
+// @Success 202 {object} CreateExportResponse "Export job created"
+// @Success 200 {object} CreateExportResponse "Existing job returned (idempotency)"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /exports [post]
 func CreateExport(c *gin.Context) {
 	var req CreateExportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -361,7 +381,15 @@ func CreateExport(c *gin.Context) {
 	})
 }
 
-// GetExport handles GET /v1/exports/:job_id
+// GetExport godoc
+// @Summary Get export job status
+// @Description Retrieves the status and download URL of an export job
+// @Tags exports
+// @Produce json
+// @Param job_id path string true "Export Job ID"
+// @Success 200 {object} map[string]interface{} "Export job details with download URL"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Router /exports/{job_id} [get]
 func GetExport(c *gin.Context) {
 	jobID := c.Param("job_id")
 

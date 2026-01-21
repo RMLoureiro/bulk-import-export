@@ -49,7 +49,22 @@ type GetImportResponse struct {
 	CompletedAt    *string                `json:"completed_at,omitempty"`
 }
 
-// CreateImport handles POST /v1/imports
+// CreateImport godoc
+// @Summary Create a new import job
+// @Description Creates an import job to bulk import users, articles, or comments from CSV or NDJSON files
+// @Tags imports
+// @Accept multipart/form-data
+// @Accept json
+// @Produce json
+// @Param Idempotency-Key header string true "Unique key to prevent duplicate imports"
+// @Param file formData file false "File to import (CSV or NDJSON)"
+// @Param resource_type formData string false "Type of resource (users, articles, or comments)"
+// @Param file_url body string false "URL of file to import (alternative to file upload)"
+// @Success 202 {object} CreateImportResponse "Import job created"
+// @Success 200 {object} CreateImportResponse "Existing job returned (idempotency)"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /imports [post]
 func CreateImport(c *gin.Context) {
 	db := common.GetDB()
 	
@@ -190,7 +205,15 @@ func CreateImport(c *gin.Context) {
 	})
 }
 
-// GetImport handles GET /v1/imports/:job_id
+// GetImport godoc
+// @Summary Get import job status
+// @Description Retrieves the status and progress of an import job
+// @Tags imports
+// @Produce json
+// @Param job_id path string true "Import Job ID"
+// @Success 200 {object} GetImportResponse "Import job details"
+// @Failure 404 {object} map[string]string "Job not found"
+// @Router /imports/{job_id} [get]
 func GetImport(c *gin.Context) {
 	db := common.GetDB()
 	jobID := c.Param("job_id")

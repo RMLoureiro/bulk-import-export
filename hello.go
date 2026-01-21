@@ -5,13 +5,36 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	
 	"bulk-import-export/articles"
 	"bulk-import-export/common"
 	"bulk-import-export/exports"
 	"bulk-import-export/imports"
 	"bulk-import-export/users"
+	_ "bulk-import-export/docs"
 	"gorm.io/gorm"
 )
+
+// @title Bulk Import/Export API
+// @version 1.0
+// @description RealWorld Conduit API with bulk import/export capabilities
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /v1
+// @schemes http
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 func Migrate(db *gorm.DB) {
 	// Migrate domain models
@@ -57,6 +80,9 @@ func main() {
 		v1.POST("/exports", exports.CreateExport)
 		v1.GET("/exports/:job_id", exports.GetExport)
 	}
+	
+	// Swagger documentation route
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Serve static export files
 	r.Static("/exports", "./data/exports")

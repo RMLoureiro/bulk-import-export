@@ -1,0 +1,291 @@
+basePath: /v1
+definitions:
+  common.RecordValidationResult:
+    properties:
+      errors:
+        items:
+          $ref: '#/definitions/common.ValidationError'
+        type: array
+      record_id:
+        type: string
+      row_number:
+        type: integer
+      valid:
+        type: boolean
+    type: object
+  common.ValidationError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  exports.CreateExportRequest:
+    properties:
+      fields:
+        description: Optional field selection
+        items:
+          type: string
+        type: array
+      filters:
+        additionalProperties:
+          type: string
+        description: Optional filters
+        type: object
+      format:
+        enum:
+        - csv
+        - ndjson
+        type: string
+      idempotency_key:
+        type: string
+      resource_type:
+        enum:
+        - users
+        - articles
+        - comments
+        type: string
+    required:
+    - format
+    - idempotency_key
+    - resource_type
+    type: object
+  exports.CreateExportResponse:
+    properties:
+      created_at:
+        type: string
+      job_id:
+        type: string
+      status:
+        type: string
+    type: object
+  imports.CreateImportResponse:
+    properties:
+      created_at:
+        type: string
+      job_id:
+        type: string
+      status:
+        type: string
+    type: object
+  imports.GetImportResponse:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      errors:
+        items:
+          $ref: '#/definitions/common.RecordValidationResult'
+        type: array
+      fail_count:
+        type: integer
+      job_id:
+        type: string
+      processed_count:
+        type: integer
+      resource_type:
+        type: string
+      status:
+        type: string
+      success_count:
+        type: integer
+      total_records:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: RealWorld Conduit API with bulk import/export capabilities
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Bulk Import/Export API
+  version: "1.0"
+paths:
+  /exports:
+    get:
+      description: Streams users, articles, or comments directly in CSV or NDJSON
+        format
+      parameters:
+      - description: Resource type (users, articles, or comments)
+        in: query
+        name: resource
+        required: true
+        type: string
+      - description: Export format (csv or ndjson)
+        in: query
+        name: format
+        required: true
+        type: string
+      produces:
+      - text/csv
+      - application/x-ndjson
+      responses:
+        "200":
+          description: Streaming export data
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Stream export data (synchronous)
+      tags:
+      - exports
+    post:
+      consumes:
+      - application/json
+      description: Creates an export job to export filtered data asynchronously with
+        download URL
+      parameters:
+      - description: Export configuration
+        in: body
+        name: export
+        required: true
+        schema:
+          $ref: '#/definitions/exports.CreateExportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Existing job returned (idempotency)
+          schema:
+            $ref: '#/definitions/exports.CreateExportResponse'
+        "202":
+          description: Export job created
+          schema:
+            $ref: '#/definitions/exports.CreateExportResponse'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create async export job
+      tags:
+      - exports
+  /exports/{job_id}:
+    get:
+      description: Retrieves the status and download URL of an export job
+      parameters:
+      - description: Export Job ID
+        in: path
+        name: job_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Export job details with download URL
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Job not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get export job status
+      tags:
+      - exports
+  /imports:
+    post:
+      consumes:
+      - multipart/form-data
+      - application/json
+      description: Creates an import job to bulk import users, articles, or comments
+        from CSV or NDJSON files
+      parameters:
+      - description: Unique key to prevent duplicate imports
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: File to import (CSV or NDJSON)
+        in: formData
+        name: file
+        type: file
+      - description: Type of resource (users, articles, or comments)
+        in: formData
+        name: resource_type
+        type: string
+      - description: URL of file to import (alternative to file upload)
+        in: body
+        name: file_url
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Existing job returned (idempotency)
+          schema:
+            $ref: '#/definitions/imports.CreateImportResponse'
+        "202":
+          description: Import job created
+          schema:
+            $ref: '#/definitions/imports.CreateImportResponse'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new import job
+      tags:
+      - imports
+  /imports/{job_id}:
+    get:
+      description: Retrieves the status and progress of an import job
+      parameters:
+      - description: Import Job ID
+        in: path
+        name: job_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Import job details
+          schema:
+            $ref: '#/definitions/imports.GetImportResponse'
+        "404":
+          description: Job not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get import job status
+      tags:
+      - imports
+schemes:
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
