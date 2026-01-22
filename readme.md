@@ -12,7 +12,6 @@ A high-performance bulk import and export system for the RealWorld Conduit API, 
 - **Filtering**: Export filtered data (e.g., published articles, active users)
 - **Progress Tracking**: Real-time monitoring of import/export jobs
 - **Metrics Collection**: API performance tracking with request IDs
-- **Data Validation**: O(1) validation with pre-loaded reference data
 - **Interactive Documentation**: Swagger/OpenAPI documentation at `/swagger/index.html`
 
 ## 📋 Prerequisites
@@ -145,19 +144,6 @@ The test suite includes:
 
 See [TEST_SUITE.md](TEST_SUITE.md) for details.
 
-## 📊 Performance
-
-- **Import Speed**: ~5,000 records/second
-- **Export Speed**: ~75,000 records/second (streaming)
-- **Memory Usage**: O(1) - constant memory via streaming
-- **Validation**: O(1) lookup with pre-loaded reference data
-- **Batch Size**: 1,000 records per batch
-
-### Benchmark Results (10K users)
-- Import time: ~2 minutes
-- Export time: ~130ms (streaming)
-- Memory footprint: ~50MB
-
 ## 🔌 API Endpoints
 
 ### Imports
@@ -222,9 +208,14 @@ Ensure CSV files have headers and NDJSON files have one JSON object per line.
 
 ### Validation failures
 Check error details in the import job response. Common issues:
-- Missing required fields
-- Invalid foreign key references (e.g., non-existent user_id)
-- Duplicate unique values (email, slug)
+- Missing required fields (email, slug, ID)
+- Invalid email format
+- Invalid slug format (must be kebab-case)
+- Comment body exceeds 500 words
+- Draft articles with published_at timestamp
+- Invalid foreign key references (orphaned records cleaned up post-import)
+
+Note: Duplicate natural keys (email, slug) are **not** failures - they update existing records via upsert.
 
 ## 🏗️ Architecture
 
@@ -235,53 +226,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed system design, including:
 - Performance optimizations
 - Scalability considerations
 
-## 📝 Development
-
-### Generate Swagger Docs
-```bash
-~/go/bin/swag init -g hello.go --parseDependency --parseInternal
-```
-
-### Format Code
-```bash
-go fmt ./...
-```
-
-### Run Linter
-```bash
-golangci-lint run
-```
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests: `go test ./...`
-5. Submit a pull request
-
-## 📞 Support
-
-For issues and questions:
-- Create an issue on GitHub
-- Check existing documentation in `docs/`
-- Review test examples in `test-suite.sh`
-
-## 🎯 Roadmap
-
-- [ ] Add pagination for streaming exports
-- [ ] Support additional formats (XML, Parquet)
-- [ ] Implement rate limiting
-- [ ] Add authentication/authorization
-- [ ] Support S3 for file storage
-- [ ] Add webhook notifications for job completion
-- [ ] Implement job cancellation
-- [ ] Add data transformation capabilities
-
----
-
-Built with ❤️ using Go and Gin framework
+Built with Go and Gin framework

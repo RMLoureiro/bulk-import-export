@@ -1,8 +1,8 @@
 /*
-Golang Gonic/Gin startup project fork form RealWorld https://realworld.io
+Bulk Import/Export API
 
-# You can find all the spec and front end demo in the Realworld project
+Handles bulk import and export of users, articles, and comments.
 
-This project will include objects and relationships' CRUD, you will know how to write a golang/gin app though small perfectly formed.
+See Bulk_Import_Export_Assignment.md for full specifications.
 */
 package main

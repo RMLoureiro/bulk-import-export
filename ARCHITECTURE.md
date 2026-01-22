@@ -155,26 +155,35 @@ Client Upload
 ┌────────────────────────────────────────────────────┐
 │ 4. Start Background Processing (goroutine)         │
 │    • Status → "processing"                         │
-│    • Pre-load reference data (users for articles)  │
 │    • Open file with appropriate parser             │
 └────────────┬───────────────────────────────────────┘
              │
              ▼
 ┌────────────────────────────────────────────────────┐
-│ 5. Process Records in Batches (1000)               │
+│ 5. Process Records in Batches (2000)               │
 │    For each record:                                │
 │    • Parse into domain model                       │
-│    • Validate (required fields, foreign keys)      │
+│    • Validate (required fields, natural keys)      │
+│    • Normalize (generate ID if missing)            │
 │    • Add to batch                                  │
 │    When batch full:                                │
-│    • Bulk insert with db.Create(&batch)            │
+│    • Upsert with OnConflict by natural key         │
 │    • Update processed_count                        │
 │    • Clear batch for next iteration                │
 └────────────┬───────────────────────────────────────┘
              │
              ▼
 ┌────────────────────────────────────────────────────┐
-│ 6. Complete Processing                             │
+│ 6. Cleanup Orphaned Records                        │
+│    • Find articles with invalid author_id          │
+│    • Find comments with invalid article_id/user_id │
+│    • Delete orphaned records                       │
+│    • Log FK violations as errors                   │
+└────────────┬───────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────┐
+│ 7. Complete Processing                             │
 │    • Status → "completed" or "failed"              │
 │    • Set completed_at timestamp                    │
 │    • Record success_count and fail_count           │
@@ -304,6 +313,8 @@ CREATE TABLE articles (
     body TEXT NOT NULL,
     author_id TEXT NOT NULL,
     status TEXT DEFAULT 'draft',
+    tags TEXT,                    -- JSON array of tags (denormalized)
+    published_at DATETIME,
     created_at DATETIME,
     updated_at DATETIME,
     FOREIGN KEY (author_id) REFERENCES users(id)
@@ -311,29 +322,18 @@ CREATE TABLE articles (
 
 -- Comments
 CREATE TABLE comments (
-    id TEXT PRIMARY KEY,          -- Format: cm_{article_slug}_{index}
+    id TEXT PRIMARY KEY,
     article_id INTEGER NOT NULL,
-    author_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,        -- FK to users table
     body TEXT NOT NULL,
     created_at DATETIME,
     updated_at DATETIME,
     FOREIGN KEY (article_id) REFERENCES articles(id),
-    FOREIGN KEY (author_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Tags (many-to-many with articles)
-CREATE TABLE tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tag TEXT UNIQUE NOT NULL
-);
-
-CREATE TABLE article_tags (
-    article_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
-    PRIMARY KEY (article_id, tag_id),
-    FOREIGN KEY (article_id) REFERENCES articles(id),
-    FOREIGN KEY (tag_id) REFERENCES tags(id)
-);
+-- Note: Tags are stored as JSON in articles.tags field
+-- No separate tags or article_tags tables for performance
 ```
 
 ### Job Tracking Tables
@@ -389,23 +389,48 @@ CREATE TABLE api_metrics (
 
 ## Validation Strategy
 
-### Pre-Loading Reference Data
+### Natural Key Upsert
 
-Before importing articles or comments, the system pre-loads reference data into maps for O(1) lookup:
+The system uses natural keys for upsert operations to handle duplicate records efficiently:
 
 ```go
-// Example: Pre-load users for article validation
-validUsers := make(map[string]bool)
-var users []users.UserModel
-db.Find(&users)
-for _, user := range users {
-    validUsers[user.ID] = true
-}
+// Users: Upsert by email (natural key)
+db.Clauses(clause.OnConflict{
+    Columns:   []clause.Column{{Name: "email"}},
+    DoUpdates: clause.AssignmentColumns(...),
+}).Create(&validUsers)
 
-// Later, during validation:
-if !validUsers[article.AuthorID] {
-    // Invalid author_id
-}
+// Articles: Upsert by slug (natural key)
+db.Clauses(clause.OnConflict{
+    Columns:   []clause.Column{{Name: "slug"}},
+    DoUpdates: clause.AssignmentColumns(...),
+}).Create(&validArticles)
+
+// Comments: Upsert by ID (no natural key exists)
+db.Clauses(clause.OnConflict{
+    Columns:   []clause.Column{{Name: "id"}},
+    DoUpdates: clause.AssignmentColumns(...),
+}).Create(&validComments)
+```
+
+### Orphaned Record Cleanup
+
+After bulk import, the system identifies and removes records with invalid foreign keys:
+
+```go
+// Find articles with non-existent author_id
+db.Exec(`DELETE FROM articles WHERE id IN (
+    SELECT a.id FROM articles a 
+    LEFT JOIN users u ON a.author_id = u.id 
+    WHERE u.id IS NULL
+)`)
+
+// Find comments with invalid FKs
+db.Exec(`DELETE FROM comments WHERE id IN (
+    SELECT c.id FROM comments c 
+    LEFT JOIN articles a ON c.article_id = a.id 
+    WHERE a.id IS NULL
+)`)
 ```
 
 ### Validation Layers
@@ -416,19 +441,20 @@ if !validUsers[article.AuthorID] {
    - Valid JSON structure
 
 2. **Model Level**
-   - Field presence (required fields)
-   - Data types
-   - Field lengths
+   - Natural key presence (email for users, slug for articles)
+   - Required fields per spec
+   - ID generation if not provided
 
 3. **Business Logic Level**
-   - Foreign key references (author_id exists in users)
-   - Unique constraints (email, username, slug)
-   - Business rules (email format, slug format)
+   - Email format validation
+   - Slug kebab-case format validation
+   - Comment body ≤ 500 words
+   - Draft constraint (no published_at if status=draft)
 
 4. **Database Level**
-   - NOT NULL constraints
-   - UNIQUE indexes
-   - Foreign key constraints
+   - Upsert by natural key handles duplicates
+   - Orphaned record cleanup for invalid FKs
+   - Post-import validation and error logging
 
 ### Error Handling
 
@@ -449,19 +475,20 @@ type RecordValidationResult struct {
 ### 1. Batch Processing
 
 ```go
-const batchSize = 1000
+const batchSize = 2000
 
 batch := make([]Article, 0, batchSize)
 for record := range records {
     batch = append(batch, record)
     if len(batch) >= batchSize {
-        db.Create(&batch)  // Single transaction for 1000 records
+        // Upsert batch with natural key conflict resolution
+        db.Clauses(clause.OnConflict{...}).Create(&batch)
         batch = batch[:0]   // Clear batch
     }
 }
 ```
 
-**Impact**: 100x faster than individual inserts
+**Impact**: 100x faster than individual inserts, batch size optimized for performance
 
 ### 2. Streaming I/O
 
@@ -481,23 +508,19 @@ for {
 
 **Impact**: O(1) memory usage regardless of file size
 
-### 3. Pre-loaded Reference Maps
+### 3. Natural Key Upserts
 
 ```go
-validUsers := make(map[string]bool)
-// Load once before processing
-db.Find(&users)
-for _, user := range users {
-    validUsers[user.ID] = true
-}
-
-// O(1) lookups during processing
-if !validUsers[article.AuthorID] {
-    // Invalid
-}
+// Upsert by email - duplicates update existing records
+db.Clauses(clause.OnConflict{
+    Columns:   []clause.Column{{Name: "email"}},
+    DoUpdates: clause.AssignmentColumns([]string{
+        "username", "bio", "image", "password", "updated_at",
+    }),
+}).Create(&validUsers)
 ```
 
-**Impact**: Eliminates N database queries during validation
+**Impact**: Handles duplicate natural keys efficiently, no pre-loading needed
 
 ### 4. Async Processing with Goroutines
 

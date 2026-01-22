@@ -19,7 +19,7 @@ import (
 
 // @title Bulk Import/Export API
 // @version 1.0
-// @description RealWorld Conduit API with bulk import/export capabilities
+// @description API for bulk import/export of users, articles, and comments with streaming and async processing
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -85,7 +85,7 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Serve static export files
-	r.Static("/exports", "./data/exports")
+	r.Static("/exports", common.ExportsDir)
 
 	// Start server
 	port := os.Getenv("PORT")

@@ -1,0 +1,50 @@
+
+[1;33m========================================[0m
+[1;33mBULK IMPORT/EXPORT TEST SUITE[0m
+[1;33m========================================[0m
+
+
+[1;33m========================================[0m
+[1;33mSTEP 1: Clean Database[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Stopping any running server...
+[0;34m[INFO][0m Removing database...
+[0;32m[✓][0m Database cleaned
+[0;34m[INFO][0m Clearing upload and export directories...
+[0;32m[✓][0m Directories cleaned
+
+[1;33m========================================[0m
+[1;33mSTEP 2: Start Server[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Building application...
+[0;32m[✓][0m Build completed
+[0;34m[INFO][0m Starting server in background...
+[0;32m[✓][0m Server started (PID: 25040)
+
+[1;33m========================================[0m
+[1;33mSTEP 3: Import Users[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Starting user import...
+[0;34m[INFO][0m User import job created: 9a71fbae-bd9c-4712-8958-5552356853fd
+[0;34m[INFO][0m Monitoring import status...
+[0;34m[INFO][0m Processing... 10000 records processed
+[0;34m[INFO][0m Waiting for user import to complete...
+[0;34m[INFO][0m Check #1: Calling GET /v1/imports/9a71fbae-bd9c-4712-8958-5552356853fd
+[0;34m[INFO][0m Check #1: Status=completed, Records processed=10000
+[0;32m[✓][0m User import completed: 9799 succeeded, 201 failed
+[0;34m[INFO][0m Performance: 4899 records/sec (2s total)
+[0;32m[✓][0m Imported > 9000 users
+
+[1;33m========================================[0m
+[1;33mSTEP 4: Import Articles[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Starting article import...
+[0;34m[INFO][0m Article import job created: fb79884b-d84e-4888-a44e-d5f5b47a4f78
+[0;34m[INFO][0m Waiting for article import to complete...
+[0;34m[INFO][0m Check #1: Calling GET /v1/imports/fb79884b-d84e-4888-a44e-d5f5b47a4f78
+[0;34m[INFO][0m Check #1: Status=processing, Records processed=0
+[0;34m[INFO][0m First check completed - waiting 60 seconds for next check...

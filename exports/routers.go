@@ -19,6 +19,14 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	// BatchSize is the number of records fetched in a single query
+	BatchSize = 2000
+	
+	// ProgressUpdateInterval controls how often export jobs update progress (in records)
+	ProgressUpdateInterval = 10000
+)
+
 // StreamExport godoc
 // @Summary Stream export data (synchronous)
 // @Description Streams users, articles, or comments directly in CSV or NDJSON format
@@ -87,8 +95,8 @@ func StreamExport(c *gin.Context) {
 
 // streamUsers streams user data in the specified format
 func streamUsers(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
-	const batchSize = 1000
 	offset := 0
+	totalRecords := 0
 
 	if format == "csv" {
 		csvWriter := csv.NewWriter(w)
@@ -98,7 +106,8 @@ func streamUsers(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 
 		for {
 			var users []users.UserModel
-			result := db.Limit(batchSize).Offset(offset).Find(&users)
+			// Select only needed columns for efficiency
+			result := db.Select("id", "email", "name", "role", "active", "created_at", "updated_at").Limit(BatchSize).Offset(offset).Find(&users)
 			if result.Error != nil || len(users) == 0 {
 				break
 			}
@@ -116,16 +125,18 @@ func streamUsers(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 			}
 			csvWriter.Flush()
 			
-			if len(users) < batchSize {
+			totalRecords += len(users)
+			if len(users) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	} else {
 		// NDJSON format
 		for {
 			var users []users.UserModel
-			result := db.Limit(batchSize).Offset(offset).Find(&users)
+			// Select only needed columns for efficiency
+			result := db.Select("id", "email", "name", "role", "active", "created_at", "updated_at").Limit(BatchSize).Offset(offset).Find(&users)
 			if result.Error != nil || len(users) == 0 {
 				break
 			}
@@ -144,17 +155,20 @@ func streamUsers(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 				fmt.Fprintf(w, "%s\n", jsonBytes)
 			}
 			
-			if len(users) < batchSize {
+			totalRecords += len(users)
+			if len(users) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	}
+	
+	// Set rows_processed for metrics
+	c.Set("rows_processed", totalRecords)
 }
 
 // streamArticles streams article data in the specified format
 func streamArticles(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
-	const batchSize = 1000
 	offset := 0
 
 	if format == "csv" {
@@ -165,15 +179,16 @@ func streamArticles(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 
 		for {
 			var articles []articles.ArticleModel
-			result := db.Preload("Tags").Limit(batchSize).Offset(offset).Find(&articles)
+			result := db.Limit(BatchSize).Offset(offset).Find(&articles)
 			if result.Error != nil || len(articles) == 0 {
 				break
 			}
 
 			for _, article := range articles {
-				tagNames := []string{}
-				for _, tag := range article.Tags {
-					tagNames = append(tagNames, tag.Name)
+				// Tags are stored as JSON string
+				tagsStr := article.Tags
+				if tagsStr == "" {
+					tagsStr = "[]"
 				}
 				
 				publishedAt := ""
@@ -187,7 +202,7 @@ func streamArticles(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 					article.Title,
 					article.Body,
 					article.AuthorID,
-					strings.Join(tagNames, ","),
+					tagsStr,
 					article.Status,
 					publishedAt,
 					article.CreatedAt.Format(time.RFC3339),
@@ -195,24 +210,29 @@ func streamArticles(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 			}
 			csvWriter.Flush()
 			
-			if len(articles) < batchSize {
+			if len(articles) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	} else {
 		// NDJSON format
 		for {
 			var articles []articles.ArticleModel
-			result := db.Preload("Tags").Limit(batchSize).Offset(offset).Find(&articles)
+			result := db.Select("id", "slug", "title", "body", "author_id", "status", "published_at", "created_at").Limit(BatchSize).Offset(offset).Find(&articles)
 			if result.Error != nil || len(articles) == 0 {
 				break
 			}
 
 			for _, article := range articles {
 				tagNames := []string{}
-				for _, tag := range article.Tags {
-					tagNames = append(tagNames, tag.Name)
+				// Tags are stored as JSON
+				var tags []string
+				if article.Tags != "" {
+					json.Unmarshal([]byte(article.Tags), &tags)
+				}
+				for _, tag := range tags {
+					tagNames = append(tagNames, tag)
 				}
 
 				data := map[string]interface{}{
@@ -234,17 +254,17 @@ func streamArticles(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 				fmt.Fprintf(w, "%s\n", jsonBytes)
 			}
 			
-			if len(articles) < batchSize {
+			if len(articles) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	}
 }
 
 // streamComments streams comment data in the specified format
 func streamComments(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
-	const batchSize = 1000
+	// Using BatchSize
 	offset := 0
 
 	if format == "csv" {
@@ -255,7 +275,7 @@ func streamComments(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 
 		for {
 			var comments []articles.CommentModel
-			result := db.Limit(batchSize).Offset(offset).Find(&comments)
+			result := db.Select("id", "article_id", "user_id", "body", "created_at").Limit(BatchSize).Offset(offset).Find(&comments)
 			if result.Error != nil || len(comments) == 0 {
 				break
 			}
@@ -271,16 +291,16 @@ func streamComments(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 			}
 			csvWriter.Flush()
 			
-			if len(comments) < batchSize {
+			if len(comments) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	} else {
 		// NDJSON format
 		for {
 			var comments []articles.CommentModel
-			result := db.Limit(batchSize).Offset(offset).Find(&comments)
+			result := db.Select("id", "article_id", "user_id", "body", "created_at").Limit(BatchSize).Offset(offset).Find(&comments)
 			if result.Error != nil || len(comments) == 0 {
 				break
 			}
@@ -297,10 +317,10 @@ func streamComments(w io.Writer, db *gorm.DB, format string, c *gin.Context) {
 				fmt.Fprintf(w, "%s\n", jsonBytes)
 			}
 			
-			if len(comments) < batchSize {
+			if len(comments) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	}
 }
@@ -362,7 +382,7 @@ func CreateExport(c *gin.Context) {
 		ResourceType:   req.ResourceType,
 		Format:         req.Format,
 		Filters:        string(filtersJSON),
-		Status:         "pending",
+		Status:         common.JobStatusPending,
 		CreatedAt:      time.Now(),
 	}
 
@@ -433,20 +453,19 @@ func ProcessExportJob(jobID string, fields []string, filters map[string]string) 
 	}
 
 	// Update status to processing
-	job.Status = "processing"
+	job.Status = common.JobStatusProcessing
 	db.Save(&job)
 
 	// Create export file
-	exportDir := "./data/exports"
-	os.MkdirAll(exportDir, 0750)
+	os.MkdirAll(common.ExportsDir, 0750)
 	
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("%s_%s_%s.%s", job.ResourceType, jobID[:8], timestamp, job.Format)
-	filepath := filepath.Join(exportDir, filename)
+	filepath := filepath.Join(common.ExportsDir, filename)
 
 	file, err := os.Create(filepath)
 	if err != nil {
-		job.Status = "failed"
+		job.Status = common.JobStatusFailed
 		now := time.Now()
 		job.CompletedAt = &now
 		db.Save(&job)
@@ -466,9 +485,9 @@ func ProcessExportJob(jobID string, fields []string, filters map[string]string) 
 	}
 
 	if exportErr != nil {
-		job.Status = "failed"
+		job.Status = common.JobStatusFailed
 	} else {
-		job.Status = "completed"
+		job.Status = common.JobStatusCompleted
 		job.DownloadURL = fmt.Sprintf("/exports/%s", filename)
 	}
 
@@ -478,7 +497,7 @@ func ProcessExportJob(jobID string, fields []string, filters map[string]string) 
 }
 
 func exportUsers(file *os.File, db *gorm.DB, format string, fields []string, filters map[string]string, job *common.ExportJob) error {
-	const batchSize = 1000
+	// Using BatchSize
 	offset := 0
 
 	if format == "csv" {
@@ -488,7 +507,7 @@ func exportUsers(file *os.File, db *gorm.DB, format string, fields []string, fil
 
 		for {
 			var users []users.UserModel
-			query := db.Limit(batchSize).Offset(offset)
+			query := db.Limit(BatchSize).Offset(offset)
 			
 			// Apply filters
 			if role, ok := filters["role"]; ok {
@@ -517,21 +536,24 @@ func exportUsers(file *os.File, db *gorm.DB, format string, fields []string, fil
 			}
 			csvWriter.Flush()
 			
-			// Update progress periodically
-			if offset%5000 == 0 {
+			// Update progress less frequently (every 10000 records)
+			if job.TotalRecords%ProgressUpdateInterval == 0 {
+				db.Save(job)
+			}
+			if offset%ProgressUpdateInterval == 0 {
 				db.Model(job).Update("total_records", job.TotalRecords)
 			}
 			
-			if len(users) < batchSize {
+			if len(users) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	} else {
 		// NDJSON
 		for {
 			var users []users.UserModel
-			query := db.Limit(batchSize).Offset(offset)
+			query := db.Select("id", "email", "name", "role", "active", "created_at", "updated_at").Limit(BatchSize).Offset(offset)
 			
 			// Apply filters
 			if role, ok := filters["role"]; ok {
@@ -562,14 +584,14 @@ func exportUsers(file *os.File, db *gorm.DB, format string, fields []string, fil
 			}
 			
 			// Update progress periodically
-			if offset%5000 == 0 {
+			if offset%ProgressUpdateInterval == 0 {
 				db.Model(job).Update("total_records", job.TotalRecords)
 			}
 			
-			if len(users) < batchSize {
+			if len(users) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	}
 
@@ -577,7 +599,7 @@ func exportUsers(file *os.File, db *gorm.DB, format string, fields []string, fil
 }
 
 func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, filters map[string]string, job *common.ExportJob) error {
-	const batchSize = 1000
+	// Using BatchSize
 	offset := 0
 
 	if format == "csv" {
@@ -587,7 +609,7 @@ func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, 
 
 		for {
 			var articles []articles.ArticleModel
-			query := db.Preload("Tags").Limit(batchSize).Offset(offset)
+			query := db.Limit(BatchSize).Offset(offset)
 			
 			// Apply filters
 			if status, ok := filters["status"]; ok {
@@ -604,8 +626,13 @@ func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, 
 
 			for _, article := range articles {
 				tagNames := []string{}
-				for _, tag := range article.Tags {
-					tagNames = append(tagNames, tag.Name)
+				// Tags are stored as JSON
+				var tags []string
+				if article.Tags != "" {
+					json.Unmarshal([]byte(article.Tags), &tags)
+				}
+				for _, tag := range tags {
+					tagNames = append(tagNames, tag)
 				}
 				
 				publishedAt := ""
@@ -628,20 +655,20 @@ func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, 
 			}
 			csvWriter.Flush()
 			
-			if offset%5000 == 0 {
+			if offset%ProgressUpdateInterval == 0 {
 				db.Model(job).Update("total_records", job.TotalRecords)
 			}
 			
-			if len(articles) < batchSize {
+			if len(articles) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	} else {
 		// NDJSON
 		for {
 			var articles []articles.ArticleModel
-			query := db.Preload("Tags").Limit(batchSize).Offset(offset)
+			query := db.Select("id", "slug", "title", "body", "author_id", "status", "published_at", "created_at").Limit(BatchSize).Offset(offset)
 			
 			// Apply filters
 			if status, ok := filters["status"]; ok {
@@ -658,8 +685,13 @@ func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, 
 
 			for _, article := range articles {
 				tagNames := []string{}
-				for _, tag := range article.Tags {
-					tagNames = append(tagNames, tag.Name)
+				// Tags are stored as JSON
+				var tags []string
+				if article.Tags != "" {
+					json.Unmarshal([]byte(article.Tags), &tags)
+				}
+				for _, tag := range tags {
+					tagNames = append(tagNames, tag)
 				}
 
 				data := map[string]interface{}{
@@ -682,14 +714,14 @@ func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, 
 				job.TotalRecords++
 			}
 			
-			if offset%5000 == 0 {
+			if offset%ProgressUpdateInterval == 0 {
 				db.Model(job).Update("total_records", job.TotalRecords)
 			}
 			
-			if len(articles) < batchSize {
+			if len(articles) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	}
 
@@ -697,7 +729,7 @@ func exportArticles(file *os.File, db *gorm.DB, format string, fields []string, 
 }
 
 func exportComments(file *os.File, db *gorm.DB, format string, fields []string, filters map[string]string, job *common.ExportJob) error {
-	const batchSize = 1000
+	// Using BatchSize
 	offset := 0
 
 	if format == "csv" {
@@ -707,7 +739,7 @@ func exportComments(file *os.File, db *gorm.DB, format string, fields []string, 
 
 		for {
 			var comments []articles.CommentModel
-			query := db.Limit(batchSize).Offset(offset)
+			query := db.Limit(BatchSize).Offset(offset)
 			
 			// Apply filters
 			if articleID, ok := filters["article_id"]; ok {
@@ -734,20 +766,20 @@ func exportComments(file *os.File, db *gorm.DB, format string, fields []string, 
 			}
 			csvWriter.Flush()
 			
-			if offset%5000 == 0 {
+			if offset%ProgressUpdateInterval == 0 {
 				db.Model(job).Update("total_records", job.TotalRecords)
 			}
 			
-			if len(comments) < batchSize {
+			if len(comments) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	} else {
 		// NDJSON
 		for {
 			var comments []articles.CommentModel
-			query := db.Limit(batchSize).Offset(offset)
+			query := db.Select("id", "article_id", "user_id", "body", "created_at").Limit(BatchSize).Offset(offset)
 			
 			// Apply filters
 			if articleID, ok := filters["article_id"]; ok {
@@ -775,14 +807,14 @@ func exportComments(file *os.File, db *gorm.DB, format string, fields []string, 
 				job.TotalRecords++
 			}
 			
-			if offset%5000 == 0 {
+			if offset%ProgressUpdateInterval == 0 {
 				db.Model(job).Update("total_records", job.TotalRecords)
 			}
 			
-			if len(comments) < batchSize {
+			if len(comments) < BatchSize {
 				break
 			}
-			offset += batchSize
+			offset += BatchSize
 		}
 	}
 

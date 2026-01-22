@@ -440,7 +440,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/v1",
 	Schemes:          []string{"http"},
 	Title:            "Bulk Import/Export API",
-	Description:      "RealWorld Conduit API with bulk import/export capabilities",
+	Description:      "API for bulk import/export of users, articles, and comments with streaming and async processing",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

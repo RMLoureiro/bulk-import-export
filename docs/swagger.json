@@ -4,7 +4,7 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "RealWorld Conduit API with bulk import/export capabilities",
+        "description": "API for bulk import/export of users, articles, and comments with streaming and async processing",
         "title": "Bulk Import/Export API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {

@@ -1,0 +1,162 @@
+
+[1;33m========================================[0m
+[1;33mBULK IMPORT/EXPORT TEST SUITE[0m
+[1;33m========================================[0m
+
+
+[1;33m========================================[0m
+[1;33mSTEP 1: Clean Database[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Stopping any running server...
+[0;34m[INFO][0m Removing database...
+[0;32m[✓][0m Database cleaned
+[0;34m[INFO][0m Clearing upload and export directories...
+[0;32m[✓][0m Directories cleaned
+
+[1;33m========================================[0m
+[1;33mSTEP 2: Start Server[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Building application...
+[0;32m[✓][0m Build completed
+[0;34m[INFO][0m Starting server in background...
+[0;32m[✓][0m Server started (PID: 25196)
+
+[1;33m========================================[0m
+[1;33mSTEP 3: Import Users[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Starting user import...
+[0;34m[INFO][0m User import job created: caac9302-05bc-44e0-a258-c2428b165f7b
+[0;34m[INFO][0m Monitoring import status...
+[0;34m[INFO][0m Processing... 10000 records processed
+[0;34m[INFO][0m Waiting for user import to complete...
+[0;34m[INFO][0m Check #1: Calling GET /v1/imports/caac9302-05bc-44e0-a258-c2428b165f7b
+[0;34m[INFO][0m Check #1: Status=completed, Records processed=10000
+[0;32m[✓][0m User import completed: 9799 succeeded, 201 failed
+[0;34m[INFO][0m Performance: 4899 records/sec (2s total)
+[0;32m[✓][0m Imported > 9000 users
+[0;34m[INFO][0m Database contains: 9750 users
+
+[1;33m========================================[0m
+[1;33mSTEP 4: Import Articles[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Starting article import...
+[0;34m[INFO][0m Article import job created: 6569375b-0061-44ba-864c-1aff1d041b7d
+[0;34m[INFO][0m Waiting for article import to complete...
+[0;34m[INFO][0m Check #1: Calling GET /v1/imports/6569375b-0061-44ba-864c-1aff1d041b7d
+[0;34m[INFO][0m Check #1: Status=processing, Records processed=0
+[0;34m[INFO][0m First check completed - waiting 60 seconds for next check...
+[0;34m[INFO][0m Check #2: Calling GET /v1/imports/6569375b-0061-44ba-864c-1aff1d041b7d
+[0;34m[INFO][0m Check #2: Status=completed, Records processed=15000
+[0;32m[✓][0m Article import completed: 14340 succeeded, 660 failed
+[0;34m[INFO][0m Performance: 214 records/sec (67s total)
+[0;32m[✓][0m Imported > 10000 articles
+[0;34m[INFO][0m Database contains: 10892 articles
+
+[1;33m========================================[0m
+[1;33mSTEP 5: Import Comments[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Starting comment import...
+[0;34m[INFO][0m Comment import job created: 66e5b025-1c6a-4cf8-a26c-c9095203e25e
+[0;34m[INFO][0m Waiting for comment import to complete...
+[0;34m[INFO][0m Check #1: Calling GET /v1/imports/66e5b025-1c6a-4cf8-a26c-c9095203e25e
+[0;34m[INFO][0m Check #1: Status=pending, Records processed=0
+[0;34m[INFO][0m First check completed - waiting 60 seconds for next check...
+[0;34m[INFO][0m Check #2: Calling GET /v1/imports/66e5b025-1c6a-4cf8-a26c-c9095203e25e
+[0;34m[INFO][0m Check #2: Status=processing, Records processed=20000
+[0;34m[INFO][0m Progress detected: +20000 records since last check (0 → 20000)
+[0;34m[INFO][0m Waiting 60 seconds for next check...
+[0;34m[INFO][0m Check #3: Calling GET /v1/imports/66e5b025-1c6a-4cf8-a26c-c9095203e25e
+[0;34m[INFO][0m Check #3: Status=processing, Records processed=20000
+[0;34m[INFO][0m No visible progress yet (check 1/5) - processing may be in progress...
+[0;34m[INFO][0m Waiting 60 seconds for next check...
+[0;34m[INFO][0m Check #4: Calling GET /v1/imports/66e5b025-1c6a-4cf8-a26c-c9095203e25e
+[0;34m[INFO][0m Check #4: Status=completed, Records processed=20000
+[0;32m[✓][0m Comment import completed: 13696 succeeded, 6304 failed
+[0;34m[INFO][0m Performance: 68 records/sec (200s total)
+[0;32m[✓][0m Imported > 13000 comments
+[0;34m[INFO][0m Database contains: 13696 comments
+
+[1;33m========================================[0m
+[1;33mSTEP 6: Test Streaming Exports[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Testing streaming export: users (NDJSON)...
+[0;32m[✓][0m Streaming export user count matches database
+[0;34m[INFO][0m Performance: 85526 records/sec (114ms total)
+[0;34m[INFO][0m Testing streaming export: users (CSV)...
+[0;32m[✓][0m CSV export user count matches database
+[0;32m[✓][0m CSV header is correct
+[0;34m[INFO][0m Testing streaming export: articles (NDJSON)...
+[0;32m[✓][0m Streaming export article count matches database
+[0;34m[INFO][0m Performance: 3550 records/sec (3068ms total)
+[0;34m[INFO][0m Testing streaming export: comments (CSV)...
+[0;32m[✓][0m CSV export comment count matches import
+[0;34m[INFO][0m Performance: 15285 records/sec (896ms total)
+[0;34m[INFO][0m Comments with cm_ prefix: 0
+
+[1;33m========================================[0m
+[1;33mSTEP 7: Test Async Exports with Filters[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Testing async export: published articles (NDJSON)...
+[0;34m[INFO][0m Published articles export job: 7c0cdb4e-e60e-45b0-a12d-351cb181995c
+[0;34m[INFO][0m Waiting for export to complete...
+[0;34m[INFO][0m Check #1: Calling GET /v1/exports/7c0cdb4e-e60e-45b0-a12d-351cb181995c
+[0;34m[INFO][0m Check #1: Status=processing, Records processed=0
+[0;34m[INFO][0m First check completed - waiting 60 seconds for next check...
+[0;34m[INFO][0m Check #2: Calling GET /v1/exports/7c0cdb4e-e60e-45b0-a12d-351cb181995c
+[0;34m[INFO][0m Check #2: Status=completed, Records processed=5492
+[0;32m[✓][0m Published articles exported: 5492 records
+[0;34m[INFO][0m Download URL: /exports/articles_7c0cdb4e_20260122_050404.ndjson
+[0;32m[✓][0m Downloaded file matches record count
+[0;32m[✓][0m All exported articles have published status
+[0;34m[INFO][0m Testing async export: draft articles (CSV)...
+[0;34m[INFO][0m Check #1: Calling GET /v1/exports/79cdfd95-0897-4867-bd33-7e77ef4477cd
+[0;34m[INFO][0m Check #1: Status=processing, Records processed=0
+[0;34m[INFO][0m First check completed - waiting 60 seconds for next check...
+[0;34m[INFO][0m Check #2: Calling GET /v1/exports/79cdfd95-0897-4867-bd33-7e77ef4477cd
+[0;34m[INFO][0m Check #2: Status=completed, Records processed=5400
+[0;32m[✓][0m Draft articles exported: 5400 records
+[0;34m[INFO][0m Testing idempotency...
+[0;32m[✓][0m Idempotency working: same job ID returned
+
+[1;33m========================================[0m
+[1;33mSTEP 8: Verify Metrics Collection[0m
+[1;33m========================================[0m
+
+[0;34m[INFO][0m Total API metrics recorded: 29
+[0;32m[✓][0m Metrics are being collected
+[0;34m[INFO][0m Latest metric: /v1/exports|1
+
+[1;33m========================================[0m
+[1;33mTEST SUMMARY[0m
+[1;33m========================================[0m
+
+[0;32mTests Passed: 21[0m
+[0;31mTests Failed: 0[0m
+[0;34mTotal Time: 414s[0m
+
+[1;33m========================================[0m
+[1;33mPERFORMANCE METRICS[0m
+[1;33m========================================[0m
+
+
+[1;33mImport Performance:[0m
+  [0;32mUsers:[0m     9799 records in 2s -> 4899 records/sec
+  [0;32mArticles:[0m  14340 records in 67s -> 214 records/sec
+  [0;32mComments:[0m  13696 records in 200s -> 68 records/sec
+
+[1;33mExport Performance (Streaming):[0m
+  [0;32mUsers:[0m     9750 records in 114ms -> 85526 records/sec
+  [0;32mArticles:[0m  10892 records in 3068ms -> 3550 records/sec
+  [0;32mComments:[0m  13696 records in 896ms -> 15285 records/sec
+
+[0;34m[INFO][0m Stopping server...
+
+[0;32m✓ ALL TESTS PASSED[0m
+

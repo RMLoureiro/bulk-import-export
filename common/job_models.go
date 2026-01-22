@@ -6,6 +6,27 @@ import (
 	"gorm.io/gorm"
 )
 
+// Job status constants
+const (
+	JobStatusPending    = "pending"
+	JobStatusProcessing = "processing"
+	JobStatusCompleted  = "completed"
+	JobStatusFailed     = "failed"
+)
+
+// Resource type constants
+const (
+	ResourceTypeUsers    = "users"
+	ResourceTypeArticles = "articles"
+	ResourceTypeComments = "comments"
+)
+
+// Format type constants
+const (
+	FormatCSV    = "csv"
+	FormatNDJSON = "ndjson"
+)
+
 // ImportJob tracks the status of import operations
 type ImportJob struct {
 	ID             string     `gorm:"primaryKey;type:text" json:"id"`

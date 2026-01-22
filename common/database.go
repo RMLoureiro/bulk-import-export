@@ -10,6 +10,18 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const (
+	// Default directory paths
+	DataDir          = "./data"
+	UploadsDir       = "./data/uploads"
+	ExportsDir       = "./data/exports"
+	DatabasePath     = "./data/gorm.db"
+	TestDatabasePath = "./data/gorm_test.db"
+	
+	// Directory permissions
+	DirPermissions = 0750
+)
+
 type Database struct {
 	*gorm.DB
 }
@@ -21,7 +33,7 @@ var DB *gorm.DB
 func GetDBPath() string {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		dbPath = "./data/gorm.db"
+		dbPath = DatabasePath
 	}
 	return dbPath
 }
@@ -31,7 +43,7 @@ func GetDBPath() string {
 func GetTestDBPath() string {
 	testDBPath := os.Getenv("TEST_DB_PATH")
 	if testDBPath == "" {
-		testDBPath = "./data/gorm_test.db"
+		testDBPath = TestDatabasePath
 	}
 	return testDBPath
 }
@@ -40,7 +52,7 @@ func GetTestDBPath() string {
 func ensureDir(filePath string) error {
 	dir := filepath.Dir(filePath)
 	if dir != "" && dir != "." {
-		return os.MkdirAll(dir, 0750)
+		return os.MkdirAll(dir, DirPermissions)
 	}
 	return nil
 }

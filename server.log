@@ -1,0 +1,19 @@
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /health                   --> main.main.func1 (4 handlers)
+[GIN-debug] POST   /v1/imports               --> bulk-import-export/imports.CreateImport (4 handlers)
+[GIN-debug] GET    /v1/imports/:job_id       --> bulk-import-export/imports.GetImport (4 handlers)
+[GIN-debug] GET    /v1/exports               --> bulk-import-export/exports.StreamExport (4 handlers)
+[GIN-debug] POST   /v1/exports               --> bulk-import-export/exports.CreateExport (4 handlers)
+[GIN-debug] GET    /v1/exports/:job_id       --> bulk-import-export/exports.GetExport (4 handlers)
+[GIN-debug] GET    /swagger/*any             --> github.com/swaggo/gin-swagger.CustomWrapHandler.func1 (4 handlers)
+[GIN-debug] GET    /exports/*filepath        --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (4 handlers)
+[GIN-debug] HEAD   /exports/*filepath        --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (4 handlers)
+2026/01/22 04:59:24 Server starting on port 8080...
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8080

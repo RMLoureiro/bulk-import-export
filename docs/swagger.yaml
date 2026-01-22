@@ -100,7 +100,8 @@ info:
   contact:
     email: support@example.com
     name: API Support
-  description: RealWorld Conduit API with bulk import/export capabilities
+  description: API for bulk import/export of users, articles, and comments with streaming
+    and async processing
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
