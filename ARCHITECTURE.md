@@ -552,43 +552,6 @@ sqlDB.SetMaxIdleConns(25)
 3. **File Storage**: Local disk only
 4. **No Queue**: Simple goroutines for async jobs
 
-### Scaling Path
-
-#### Phase 1: Optimize Current Setup (10K-100K records)
-- ✅ Batch processing
-- ✅ Streaming I/O
-- ✅ Connection pooling
-- ✅ Async processing
-
-#### Phase 2: Scale Vertically (100K-1M records)
-- Migrate to PostgreSQL (multi-writer)
-- Increase batch size (2000-5000)
-- Add more database connections
-- Optimize queries with indexes
-
-#### Phase 3: Scale Horizontally (1M+ records)
-- Add message queue (RabbitMQ, Redis)
-- Multiple worker processes
-- Load balancer for API
-- S3/MinIO for file storage
-- Distributed tracing (OpenTelemetry)
-
-#### Phase 4: Enterprise Scale (10M+ records)
-- Kubernetes for orchestration
-- Apache Kafka for event streaming
-- Distributed database (CockroachDB)
-- Separate read replicas
-- CDN for export downloads
-
-### Estimated Capacity
-
-| Component | Current | Phase 2 | Phase 3 | Phase 4 |
-|-----------|---------|---------|---------|---------|
-| Records/Import | 100K | 1M | 10M | 100M+ |
-| Concurrent Jobs | 10 | 100 | 1000 | 10K+ |
-| Import Speed | 5K/sec | 20K/sec | 100K/sec | 1M/sec |
-| Storage | Local Disk | NAS | S3 | Distributed Object Store |
-
 ## API Design
 
 ### RESTful Principles
@@ -661,25 +624,6 @@ Documentation includes:
 - Example requests
 - HTTP status codes
 - Authentication requirements (future)
-
-## Security Considerations
-
-### Current Implementation
-
-1. **Idempotency Keys**: Prevent duplicate operations
-2. **Input Validation**: Strict validation of all inputs
-3. **File Upload Limits**: (Should add) Max file size
-4. **Error Messages**: Don't expose internal details
-
-### Future Security Enhancements
-
-1. **Authentication**: JWT tokens for API access
-2. **Authorization**: Role-based access control (RBAC)
-3. **Rate Limiting**: Prevent abuse
-4. **File Scanning**: Virus/malware detection
-5. **Encryption**: TLS/SSL for data in transit
-6. **Audit Logging**: Track all operations
-7. **CORS**: Configure allowed origins
 
 ---
 

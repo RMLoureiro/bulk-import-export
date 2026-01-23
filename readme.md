@@ -223,8 +223,6 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed system design, including:
 - Data flow diagrams
 - Validation strategy
 - Database schema
-- Performance optimizations
-- Scalability considerations
 
 ## 📄 License
 
